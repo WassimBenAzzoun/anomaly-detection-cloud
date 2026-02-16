@@ -154,6 +154,9 @@ Then access:
 - `http://localhost:8000/detect`
 - `http://localhost:8000/metrics`
 
+Docker is useful for local development, but **not required** for deploying to
+Kubernetes with the provided manifest.
+
 ---
 
 ## Prometheus Integration
@@ -210,9 +213,36 @@ If you are using Prometheus Operator, create a `ServiceMonitor` targeting the
 
 ## Kubernetes Deployment
 
-Example manifest: `k8s-deployment.yaml`.
+You can deploy to Kubernetes **without** building or hosting your own image by
+using the stock `python:3.11-slim` image and mounting this project as a
+`ConfigMap`.
 
-Apply it (after pushing your image to a registry and updating the `image` field):
+### 1. Create the ConfigMap with your code
+
+From the project root (where `app/` and `requirements.txt` live):
+
+```bash
+kubectl create configmap anomaly-detector-code \
+  --from-file=app \
+  --from-file=requirements.txt
+```
+
+This will create a `ConfigMap` named `anomaly-detector-code` that contains the
+source code and `requirements.txt`. The deployment mounts it at `/app`.
+
+### 2. Deploy the manifest
+
+The file `k8s-deployment.yaml` is already configured to:
+
+- Use `python:3.11-slim` as the base image.
+- Mount the `anomaly-detector-code` ConfigMap at `/app`.
+- Run:
+  ```bash
+  pip install --no-cache-dir -r /app/requirements.txt &&
+  uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+  ```
+
+Apply it:
 
 ```bash
 kubectl apply -f k8s-deployment.yaml
@@ -224,6 +254,27 @@ Key points:
 - Service exposes the app inside the cluster as `k8s-anomaly-detector:8000`.
 - Environment variables `PROMETHEUS_URL` and `NAMESPACE_REGEX` are configurable
   directly in the manifest.
+
+### 3. Verify the pod and service
+
+Check that the pod is running:
+
+```bash
+kubectl get pods -l app=k8s-anomaly-detector
+kubectl logs -f deploy/k8s-anomaly-detector
+```
+
+Port-forward for local testing:
+
+```bash
+kubectl port-forward svc/k8s-anomaly-detector 8000:8000
+```
+
+Then open:
+
+- `http://localhost:8000/healthz`
+- `http://localhost:8000/detect`
+- `http://localhost:8000/metrics`
 
 ---
 

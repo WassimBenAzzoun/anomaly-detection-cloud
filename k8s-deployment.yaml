@@ -16,8 +16,12 @@ spec:
     spec:
       containers:
         - name: anomaly-detector
-          image: your-registry/k8s-anomaly-detector:latest
+          image: python:3.11-slim
           imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - pip install --no-cache-dir -r /app/requirements.txt &&
+              uvicorn app.api.main:app --host 0.0.0.0 --port 8000
           env:
             - name: PROMETHEUS_URL
               value: "http://prometheus:9090"
@@ -38,6 +42,13 @@ spec:
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
+          volumeMounts:
+            - name: code
+              mountPath: /app
+      volumes:
+        - name: code
+          configMap:
+            name: anomaly-detector-code
 ---
 apiVersion: v1
 kind: Service
@@ -53,4 +64,3 @@ spec:
       port: 8000
       targetPort: http
       protocol: TCP
-
