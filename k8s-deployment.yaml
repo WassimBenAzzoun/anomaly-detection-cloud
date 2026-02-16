@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-anomaly-detector
+  labels:
+    app: k8s-anomaly-detector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-anomaly-detector
+  template:
+    metadata:
+      labels:
+        app: k8s-anomaly-detector
+    spec:
+      containers:
+        - name: anomaly-detector
+          image: your-registry/k8s-anomaly-detector:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus:9090"
+            - name: NAMESPACE_REGEX
+              value: ".*"
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-anomaly-detector
+  labels:
+    app: k8s-anomaly-detector
+spec:
+  selector:
+    app: k8s-anomaly-detector
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+
