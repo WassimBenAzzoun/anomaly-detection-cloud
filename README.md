@@ -222,23 +222,28 @@ using the stock `python:3.11-slim` image and mounting this project as a
 From the project root (where `app/` and `requirements.txt` live):
 
 ```bash
-kubectl create configmap anomaly-detector-code \
-  --from-file=app \
-  --from-file=requirements.txt
+rm -f code.tar.gz
+tar czf code.tar.gz app requirements.txt
+
+kubectl create configmap anomaly-detector-code --from-file=code.tar.gz
 ```
 
 This will create a `ConfigMap` named `anomaly-detector-code` that contains the
-source code and `requirements.txt`. The deployment mounts it at `/app`.
+source code and `requirements.txt` packaged as a single tarball. The deployment
+mounts it at `/config` and unpacks it into `/workspace` at container startup.
 
 ### 2. Deploy the manifest
 
 The file `k8s-deployment.yaml` is already configured to:
 
 - Use `python:3.11-slim` as the base image.
-- Mount the `anomaly-detector-code` ConfigMap at `/app`.
+- Mount the `anomaly-detector-code` ConfigMap at `/config`.
 - Run:
   ```bash
-  pip install --no-cache-dir -r /app/requirements.txt &&
+  mkdir -p /workspace &&
+  tar xzf /config/code.tar.gz -C /workspace &&
+  cd /workspace &&
+  pip install --no-cache-dir -r requirements.txt &&
   uvicorn app.api.main:app --host 0.0.0.0 --port 8000
   ```
 
@@ -282,9 +287,9 @@ Then open:
   1. Recreate the ConfigMap with the latest files:
      ```bash
      kubectl delete configmap anomaly-detector-code
-     kubectl create configmap anomaly-detector-code \
-       --from-file=app \
-       --from-file=requirements.txt
+     rm -f code.tar.gz
+     tar czf code.tar.gz app requirements.txt
+     kubectl create configmap anomaly-detector-code --from-file=code.tar.gz
      ```
   2. Re-apply the manifest:
      ```bash

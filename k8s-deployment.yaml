@@ -20,7 +20,9 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
-            - cd /app &&
+            - mkdir -p /workspace &&
+              tar xzf /config/code.tar.gz -C /workspace &&
+              cd /workspace &&
               pip install --no-cache-dir -r requirements.txt &&
               uvicorn app.api.main:app --host 0.0.0.0 --port 8000
           env:
@@ -33,7 +35,7 @@ spec:
               containerPort: 8000
           volumeMounts:
             - name: code
-              mountPath: /app
+              mountPath: /config
       volumes:
         - name: code
           configMap:
