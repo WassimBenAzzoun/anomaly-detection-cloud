@@ -34,24 +34,70 @@ The service exposes:
 
 ## Configuration
 
-All configuration is done via environment variables (see `app/config.py`):
+Runtime configuration lives in `app/config.py` and is driven entirely by
+environment variables. You normally do **not** edit `config.py`; instead you set
+env vars when running the app (locally, via Docker, or in Kubernetes).
 
-- `PROMETHEUS_URL` (default `http://prometheus:9090`)
-  - Base URL for Prometheus HTTP API.
-- `NAMESPACE_REGEX` (default `.*`)
-  - Regex for Kubernetes namespaces to include in queries.
-- `POD_LABEL` (default `pod`)
-  - Label key in Prometheus metrics that holds the pod name.
-- `TRAINING_LOOKBACK_MINUTES` (default `60`)
-  - Lookback window for initial model training.
-- `QUERY_STEP_SECONDS` (default `60`)
-  - Step for `/api/v1/query_range` training queries.
-- `REQUEST_TIMEOUT_SECONDS` (default `5`)
-  - HTTP timeout for Prometheus calls.
-- IsolationForest tuning:
+### Config file: `app/config.py`
+
+This module defines the following settings:
+
+- `PROMETHEUS_URL`
+  - Default: `http://prometheus:9090`
+  - What it is: Base URL of your Prometheus server (`http://host:port`).
+  - Required? **Yes** – you must point this at a real Prometheus instance that
+    has Kubernetes metrics.
+
+- `NAMESPACE_REGEX`
+  - Default: `.*`
+  - What it is: Regular expression used to filter `namespace` labels in PromQL
+    queries. Only pods whose namespace matches this regex are included.
+  - Required? No – but recommended to restrict to namespaces you care about
+    (e.g. `default|prod-.*`).
+
+- `POD_LABEL`
+  - Default: `pod`
+  - What it is: Name of the label in Prometheus metrics that contains the pod
+    name (commonly `pod`, sometimes `pod_name` depending on your setup).
+  - Required? No – change only if your metrics use a different label key.
+
+- `TRAINING_LOOKBACK_MINUTES`
+  - Default: `60`
+  - What it is: How many minutes of historical data to use when training the
+    IsolationForest model on startup.
+  - Required? No – but you need enough history to get a reasonable model.
+
+- `QUERY_STEP_SECONDS`
+  - Default: `60`
+  - What it is: Step size for Prometheus `/api/v1/query_range` during training
+    (i.e. how often to sample within the lookback window).
+  - Required? No.
+
+- `REQUEST_TIMEOUT_SECONDS`
+  - Default: `5`
+  - What it is: HTTP timeout (in seconds) for Prometheus requests.
+  - Required? No.
+
+- IsolationForest tuning
   - `IFOREST_N_ESTIMATORS` (default `100`)
+    - Number of trees in the IsolationForest.
   - `IFOREST_MAX_SAMPLES` (default `256`)
+    - Number of samples to draw per tree.
   - `IFOREST_CONTAMINATION` (default `auto`)
+    - Expected proportion of anomalies in the data.
+  - Required? No – adjust if you want to tune model behavior.
+
+### Minimal environment variables to set
+
+In most environments you can start with only:
+
+```bash
+export PROMETHEUS_URL="http://<your-prom-host>:9090"
+export NAMESPACE_REGEX=".*"   # or a narrower regex for your namespaces
+```
+
+All other values have sensible defaults and can be tuned later without code
+changes.
 
 ---
 
@@ -221,4 +267,3 @@ Key points:
 Feel free to adjust the model configuration and PromQL queries in
 `app/ml/anomaly_detector.py` and `app/config.py` to better fit your cluster and
 workload characteristics.
-
