@@ -26,6 +26,8 @@ REQUEST_TIMEOUT_SECONDS = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "5"))
 
 # IsolationForest parameters
 IFOREST_N_ESTIMATORS = int(os.getenv("IFOREST_N_ESTIMATORS", "100"))
-IFOREST_MAX_SAMPLES = os.getenv("IFOREST_MAX_SAMPLES", "256")
+_max_samples_env = os.getenv("IFOREST_MAX_SAMPLES", "256")
+IFOREST_MAX_SAMPLES = (
+    "auto" if _max_samples_env.lower() == "auto" else int(_max_samples_env)
+)
 IFOREST_CONTAMINATION = os.getenv("IFOREST_CONTAMINATION", "auto")
-
