@@ -276,6 +276,31 @@ Then open:
 - `http://localhost:8000/detect`
 - `http://localhost:8000/metrics`
 
+### 4. Update or delete the deployment
+
+- To update code or dependencies:
+  1. Recreate the ConfigMap with the latest files:
+     ```bash
+     kubectl delete configmap anomaly-detector-code
+     kubectl create configmap anomaly-detector-code \
+       --from-file=app \
+       --from-file=requirements.txt
+     ```
+  2. Re-apply the manifest:
+     ```bash
+     kubectl apply -f k8s-deployment.yaml
+     ```
+
+- To delete the deployment and service:
+  ```bash
+  kubectl delete -f k8s-deployment.yaml
+  ```
+
+- (Optional) To also remove the ConfigMap:
+  ```bash
+  kubectl delete configmap anomaly-detector-code
+  ```
+
 ---
 
 ## API Overview

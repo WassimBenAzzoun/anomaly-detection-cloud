@@ -20,7 +20,8 @@ spec:
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
-            - pip install --no-cache-dir -r /app/requirements.txt &&
+            - cd /app &&
+              pip install --no-cache-dir -r requirements.txt &&
               uvicorn app.api.main:app --host 0.0.0.0 --port 8000
           env:
             - name: PROMETHEUS_URL
